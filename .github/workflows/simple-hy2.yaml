@@ -1,4 +1,5 @@
 name: Build and push simple-hy2
+
 on:
   push:
     branches:
@@ -10,9 +11,10 @@ on:
 
 jobs:
   build-and-push:
+    name: Build and Push simple-hy2
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout code
+      - name: Checkout simple-hy2 code
         uses: actions/checkout@v4
         with:
           repository: ${{ github.repository }}
@@ -44,19 +46,19 @@ jobs:
           tags: |
             ${{ secrets.DOCKER_USERNAME }}/simple-hy2:${{ steps.custom_tag.outputs.tag }}
             ${{ secrets.DOCKER_USERNAME }}/simple-hy2:latest
-
+  
   cleanup:
-    name: Cleanup Old Docker Images
+    name: Cleanup Old simple-hy2 Images
     runs-on: ubuntu-latest
-    # This job will run only after the 'build-and-push' job is completed successfully
     needs: build-and-push
+    if: always()
     steps:
       - name: Delete old tags
-        uses: vmware-tanzu/image-delete-action@v0.0.1
+        uses: snok/container-retention-policy@v2
         with:
-          repository: ${{ secrets.DOCKER_USERNAME }}/simple-hy2
-          filter-older-than: 30d
+          image-names: 'simple-hy2'
+          cut-off: 30d
           keep-last: 3
+          token: ${{ secrets.DOCKER_PASSWORD }}
+          account: ${{ secrets.DOCKER_USERNAME }}
           dry-run: false
-          username: ${{ secrets.DOCKER_USERNAME }}
-          password: ${{ secrets.DOCKER_PASSWORD }}
