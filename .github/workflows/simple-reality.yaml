@@ -4,6 +4,10 @@ on:
     branches:
       - simple-reality
   workflow_dispatch:
+  schedule:
+    # Every Sunday at midnight UTC
+    - cron: '0 0 * * 0'
+
 jobs:
   build-and-push:
     runs-on: ubuntu-latest
@@ -14,6 +18,10 @@ jobs:
           repository: ${{ github.repository }}
           ref: simple-reality
           fetch-depth: 0
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
       - name: Login to Docker Hub
         uses: docker/login-action@v3
         with:
@@ -26,11 +34,29 @@ jobs:
           DATE_TAG=$(date +'%y%m%d')
           TAG=${DATE_TAG}-${SHORT_SHA}
           echo "tag=$TAG" >> $GITHUB_OUTPUT
-      - name: Build Docker image for amd64
-        run: |
-          docker build . --file ./Dockerfile -t ${{ secrets.DOCKER_USERNAME }}/simple-reality:${{ steps.custom_tag.outputs.tag }}
-          docker tag ${{ secrets.DOCKER_USERNAME }}/simple-reality:${{ steps.custom_tag.outputs.tag }} ${{ secrets.DOCKER_USERNAME }}/simple-reality:latest
-      - name: Push Docker images
-        run: |
-          docker push ${{ secrets.DOCKER_USERNAME }}/simple-reality:${{ steps.custom_tag.outputs.tag }}
-          docker push ${{ secrets.DOCKER_USERNAME }}/simple-reality:latest
+      - name: Build and push simple-reality image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./Dockerfile
+          platforms: linux/amd64
+          push: true
+          tags: |
+            ${{ secrets.DOCKER_USERNAME }}/simple-reality:${{ steps.custom_tag.outputs.tag }}
+            ${{ secrets.DOCKER_USERNAME }}/simple-reality:latest
+
+  cleanup:
+    name: Cleanup Old Docker Images
+    runs-on: ubuntu-latest
+    # This job will run only after the 'build-and-push' job is completed successfully
+    needs: build-and-push
+    steps:
+      - name: Delete old tags
+        uses: vmware-tanzu/image-delete-action@v0.0.1
+        with:
+          repository: ${{ secrets.DOCKER_USERNAME }}/simple-reality
+          filter-older-than: 30d
+          keep-last: 3
+          dry-run: false
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
