@@ -58,7 +58,7 @@ jobs:
         uses: snok/container-retention-policy@v2
         with:
           image-names: 'simple-hy2'
-          account-type: 'personal' # 修正此行，明確指定帳號類型
-          cut-off: '30 days ago'
-          keep-last: 3
+          account-type: 'personal'
+          cut-off: '30 days ago UTC' # 修正此行，加上了時區
+          keep-at-least: 3          # 修正此行，將 keep-last 改為 keep-at-least
           token: ${{ secrets.DOCKER_PASSWORD }}
