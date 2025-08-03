@@ -1,0 +1,33 @@
+name: simple-
+on:
+  push:
+    branches:
+      - simple-
+  workflow_dispatch:
+jobs:
+  build-and-push:
+    name: Build and Push simple-
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout simple- code
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ github.repository }}
+          ref: simple-
+          fetch-depth: 0
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+      - name: Generate custom tag
+        id: custom_tag
+        run: |
+          SHORT_SHA=$(echo $GITHUB_SHA | cut -c1-7)
+          DATE_TAG=$(date +'%y%m%d')
+          TAG=${DATE_TAG}-${SHORT_SHA}
+          echo "tag=$TAG" >> $GITHUB_OUTPUT
+      - name: Build image
+        run: docker build . -t ${{ secrets.DOCKER_USERNAME }}/simple-:${{ steps.custom_tag.outputs.tag }} -t ${{ secrets.DOCKER_USERNAME }}/simple-:latest
+      - name: Push image
+        run: docker push ${{ secrets.DOCKER_USERNAME }}/simple- --all-tags
