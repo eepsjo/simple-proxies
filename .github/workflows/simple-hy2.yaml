@@ -54,11 +54,10 @@ jobs:
     needs: build-and-push
     if: always()
     steps:
-      - name: Delete old tags
-        uses: snok/container-retention-policy@v2
+      - name: Delete old tags from Docker Hub
+        uses: snok/docker-hub-image-retention@v1
         with:
-          image-names: 'simple-hy2'
-          account-type: 'personal'
-          cut-off: '30 days ago UTC' # 修正此行，加上了時區
-          keep-at-least: 3          # 修正此行，將 keep-last 改為 keep-at-least
-          token: ${{ secrets.DOCKER_PASSWORD }}
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+          image-name: 'simple-hy2'
+          keep-at-least: 3
