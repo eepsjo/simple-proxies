@@ -1,29 +1,22 @@
-name: Build and push simple-hy2
-
+env:
+  REPO_NAME: 'simple-hy2'
+name: Build and push ${{ env.REPO_NAME }}
 on:
   push:
     branches:
-      - simple-hy2
+      - ${{ env.REPO_NAME }}
   workflow_dispatch:
-  schedule:
-    # Every Sunday at midnight UTC
-    - cron: '0 0 * * 0'
-
 jobs:
   build-and-push:
-    name: Build and Push simple-hy2
+    name: Build and Push ${{ env.REPO_NAME }}
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout simple-hy2 code
+      - name: Checkout ${{ env.REPO_NAME }} code
         uses: actions/checkout@v4
         with:
           repository: ${{ github.repository }}
-          ref: simple-hy2
+          ref: ${{ env.REPO_NAME }}
           fetch-depth: 0
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
       - name: Login to Docker Hub
         uses: docker/login-action@v3
         with:
@@ -36,29 +29,11 @@ jobs:
           DATE_TAG=$(date +'%y%m%d')
           TAG=${DATE_TAG}-${SHORT_SHA}
           echo "tag=$TAG" >> $GITHUB_OUTPUT
-      - name: Build and push simple-hy2 image
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          file: ./Dockerfile
-          platforms: linux/amd64
-          push: true
-          tags: |
-            ${{ secrets.DOCKER_USERNAME }}/simple-hy2:${{ steps.custom_tag.outputs.tag }}
-            ${{ secrets.DOCKER_USERNAME }}/simple-hy2:latest
-          provenance: false # 新增此行以避免建立索引
-  
-  cleanup:
-    name: Cleanup Old simple-hy2 Images
-    runs-on: ubuntu-latest
-    needs: build-and-push
-    if: always()
-    steps:
-      - name: Delete old tags from Docker Hub
-        uses: chialing/dockerhub-prune-action@v0.0.1
-        with:
-          username: ${{ secrets.DOCKER_USERNAME }}
-          password: ${{ secrets.DOCKER_PASSWORD }}
-          repository: 'simple-hy2'
-          days: 30
-          keep: 3
+      - name: Build ${{ env.REPO_NAME }} image
+        run: |
+          docker build . \
+            -t ${{ secrets.DOCKER_USERNAME }}/${{ env.REPO_NAME }}:${{ steps.custom_tag.outputs.tag }} \
+            -t ${{ secrets.DOCKER_USERNAME }}/${{ env.REPO_NAME }}:latest
+      - name: Push ${{ env.REPO_NAME }} image
+        run: |
+          docker push ${{ secrets.DOCKER_USERNAME }}/${{ env.REPO_NAME }} --all-tags
