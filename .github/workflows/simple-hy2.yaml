@@ -1,21 +1,19 @@
-name: simple-hy2
-env:
-  REPO_NAME: 'simple-hy2'
+name: Build and push simple-hy2
 on:
   push:
     branches:
-      - ${{ env.REPO_NAME }}
+      - simple-hy2
   workflow_dispatch:
 jobs:
   build-and-push:
-    name: Build and Push ${{ env.REPO_NAME }}
+    name: Build and Push simple-hy2
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout ${{ env.REPO_NAME }} code
+      - name: Checkout simple-hy2 code
         uses: actions/checkout@v4
         with:
           repository: ${{ github.repository }}
-          ref: ${{ env.REPO_NAME }}
+          ref: simple-hy2
           fetch-depth: 0
       - name: Login to Docker Hub
         uses: docker/login-action@v3
@@ -29,11 +27,7 @@ jobs:
           DATE_TAG=$(date +'%y%m%d')
           TAG=${DATE_TAG}-${SHORT_SHA}
           echo "tag=$TAG" >> $GITHUB_OUTPUT
-      - name: Build ${{ env.REPO_NAME }} image
-        run: |
-          docker build . \
-            -t ${{ secrets.DOCKER_USERNAME }}/${{ env.REPO_NAME }}:${{ steps.custom_tag.outputs.tag }} \
-            -t ${{ secrets.DOCKER_USERNAME }}/${{ env.REPO_NAME }}:latest
-      - name: Push ${{ env.REPO_NAME }} image
-        run: |
-          docker push ${{ secrets.DOCKER_USERNAME }}/${{ env.REPO_NAME }} --all-tags
+      - name: Build and push simple-hy2 image
+        run: docker build . -t ${{ secrets.DOCKER_USERNAME }}/simple-hy2:${{ steps.custom_tag.outputs.tag }} -t ${{ secrets.DOCKER_USERNAME }}/simple-hy2:latest
+      - name: Push simple-hy2 image
+        run: docker push ${{ secrets.DOCKER_USERNAME }}/simple-hy2 --all-tags
