@@ -1,11 +1,11 @@
-env:
-  REPO_NAME: 'simple-hy2'
 name: Build and push ${{ env.REPO_NAME }}
 on:
   push:
     branches:
       - ${{ env.REPO_NAME }}
   workflow_dispatch:
+env:
+  REPO_NAME: 'simple-hy2'
 jobs:
   build-and-push:
     name: Build and Push ${{ env.REPO_NAME }}
