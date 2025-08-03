@@ -1,4 +1,4 @@
-name: Build and push ${{ env.REPO_NAME }}
+name: simple-hy2
 on:
   push:
     branches:
