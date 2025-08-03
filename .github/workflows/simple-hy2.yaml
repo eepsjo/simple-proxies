@@ -1,4 +1,4 @@
-name: Build and push simple-hy2
+name: simple-hy2
 on:
   push:
     branches:
@@ -27,7 +27,7 @@ jobs:
           DATE_TAG=$(date +'%y%m%d')
           TAG=${DATE_TAG}-${SHORT_SHA}
           echo "tag=$TAG" >> $GITHUB_OUTPUT
-      - name: Build and push simple-hy2 image
+      - name: Build image
         run: docker build . -t ${{ secrets.DOCKER_USERNAME }}/simple-hy2:${{ steps.custom_tag.outputs.tag }} -t ${{ secrets.DOCKER_USERNAME }}/simple-hy2:latest
-      - name: Push simple-hy2 image
+      - name: Push image
         run: docker push ${{ secrets.DOCKER_USERNAME }}/simple-hy2 --all-tags
