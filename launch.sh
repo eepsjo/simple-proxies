@@ -1,67 +1,83 @@
 #!/bin/sh
 
+# 腳本說明：此腳本用於啟動一個基於 VLESS + Reality 協議的 sing-box 伺服器。
+# 它會從 Docker 環境變數中讀取配置，如果沒有設定，則使用預設值。
+# 它會自動生成 UUID 和 Reality 密鑰對，並建立 sing-box 配置，然後列印出客戶端所需的配置資訊。
+# 啟動腳本將由 setup.sh 自動調用。
+
 echo "--------------------------------------------------"
 echo "simple-reality 啟動中..."
 echo "--------------------------------------------------"
 
-# sing-box
-echo "【 sing-box 】"
-EFFECTIVE_UUID=""
-if [ -n "$uuid" ]; then
-    # 如果用戶提供了 UUID
-    EFFECTIVE_UUID="$uuid"
-    echo "使用提供的 UUID: ${EFFECTIVE_UUID}"
-else
-    # 自動生成 UUID
+# ========== 1. 從環境變數讀取配置或使用預設值 ==========
+# 可用的變數：
+# HANDSHAKE_SERVER: 偽裝目標網站，預設值為 www.apple.com
+# SNI_DOMAIN: TLS SNI 域名，預設值與 HANDSHAKE_SERVER 相同
+# LOCATION: 節點位置或名稱，預設值為 default
+# UUID: 客戶端身份驗證 UUID，如果未提供則自動生成
+
+LISTEN_PORT=443
+HANDSHAKE_PORT=443
+HANDSHAKE_SERVER="${HANDSHAKE_SERVER:-www.apple.com}"
+SNI_DOMAIN="${SNI_DOMAIN:-$HANDSHAKE_SERVER}"
+LOCATION="${LOCATION:-default}"
+PROVIDED_UUID="${UUID}"
+
+echo "啟動配置："
+echo "監聽端口: ${LISTEN_PORT}"
+echo "偽裝目標: ${HANDSHAKE_SERVER}"
+echo "SNI 域名: ${SNI_DOMAIN}"
+echo "節點位置: ${LOCATION}"
+
+
+# ========== 2. 生成 UUID 和 Reality 密鑰對 ==========
+
+# 如果沒有提供 UUID，則生成一個新的
+if [ -z "$PROVIDED_UUID" ]; then
     EFFECTIVE_UUID=$(sing-box generate uuid)
-    echo "未提供 UUID，自動生成: ${EFFECTIVE_UUID}"
-fi
-REALITY_DEST="${dest:-www.apple.com}" # Reality 的目標網站 (dest)
-if [ -n "$shortId" ]; then
-    # 如果用戶提供了 shortId
-    REALITY_SHORT_ID="$shortId"
-    echo "使用提供的 shortId: ${REALITY_SHORT_ID}"
+    echo "環境變數中未提供 UUID，已生成新的 UUID: ${EFFECTIVE_UUID}"
 else
-    # 生成一個隨機的 8 字節 shortId (16 個 16 進制字符)
-    REALITY_SHORT_ID=$(sing-box generate rand 8 --hex)
-    echo "未提供 shortId，自動生成: ${REALITY_SHORT_ID}"
+    EFFECTIVE_UUID="$PROVIDED_UUID"
+    echo "已使用環境變數中提供的 UUID: ${EFFECTIVE_UUID}"
 fi
-echo "生成 Reality 金鑰對..."
-# sing-box generate reality-keypair 會同時輸出私鑰和公鑰
-REALITY_KEYPAIR_OUTPUT=$(sing-box generate reality-keypair)
-REALITY_PRIVATE_KEY=$(echo "$REALITY_KEYPAIR_OUTPUT" | grep "PrivateKey:" | awk '{print $2}')
-REALITY_PUBLIC_KEY=$(echo "$REALITY_KEYPAIR_OUTPUT" | grep "PublicKey:" | awk '{print $2}')
-echo "Reality 金鑰對已生成"
-cat > 0.json <<EOF
+
+# 生成 Reality 密鑰對（私鑰和公鑰）
+echo "正在生成 Reality 密鑰對..."
+REALITY_KEYS=$(sing-box generate reality-keypair)
+SERVER_PRIVATE_KEY=$(echo "$REALITY_KEYS" | grep "Private key" | awk '{print $NF}')
+SERVER_PUBLIC_KEY=$(echo "$REALITY_KEYS" | grep "Public key" | awk '{print $NF}')
+echo "Reality 私鑰已生成。"
+
+# ========== 3. 創建 sing-box 配置檔案 (config.json) ==========
+echo "正在部署 sing-box 配置..."
+cat > config.json <<EOF
 {
-  "log": {
+  "log": { 
     "disabled": false,
-    "level": "warn",
+    "level": "error",
     "timestamp": true
   },
   "inbounds": [
     {
       "type": "vless",
-      "tag": "vless-in",
+      "tag": "proxy-in",
       "listen": "::",
-      "listen_port": 721,
+      "listen_port": ${LISTEN_PORT},
       "users": [
         {
           "uuid": "${EFFECTIVE_UUID}",
           "flow": "xtls-rprx-vision"
         }
       ],
-      "tls": {
-        "enabled": true,
-        "server_name": "${REALITY_DEST}",
+      "transport": {
+        "type": "tls",
         "reality": {
           "enabled": true,
-          "handshake": {
-            "server": "${REALITY_DEST}",
-            "server_port": 443
-          },
-          "private_key": "${REALITY_PRIVATE_KEY}",
-          "short_id": "${REALITY_SHORT_ID}"
+          "handshake_server": "${HANDSHAKE_SERVER}:${HANDSHAKE_PORT}",
+          "private_key": "${SERVER_PRIVATE_KEY}",
+          "server_names": [
+            "${SNI_DOMAIN}"
+          ]
         }
       }
     }
@@ -70,59 +86,44 @@ cat > 0.json <<EOF
     {
       "type": "direct",
       "tag": "direct"
-    },
-    {
-      "type": "block",
-      "tag": "block"
     }
-  ],
-  "route": {
-    "rules": [
-      {
-        "ip_is_private": true,
-        "outbound": "block"
-      },
-      {
-        "rule_set": [
-          "geoip-cn",
-          "geosite-category-ads-all"
-        ],
-        "outbound": "block"
-      }
-    ],
-    "rule_set": [
-      {
-        "tag": "geoip-cn",
-        "type": "remote",
-        "format": "binary",
-        "url": "https://raw.githubusercontent.com/SagerNet/sing-geoip/rule-set/geoip-cn.srs",
-        "download_detour": "direct"
-      },
-      {
-        "tag": "geosite-category-ads-all",
-        "type": "remote",
-        "format": "binary",
-        "url": "https://raw.githubusercontent.com/SagerNet/sing-geosite/rule-set/geosite-category-ads-all.srs",
-        "download_detour": "direct"
-      }
-    ],
-    "final": "direct"
-  }
+  ]
 }
 EOF
-echo "sing-box 配置已部署，監聽埠: 721"
-nohup sing-box run -c 0.json > ./0.log 2>&1 &
-sleep 2 # 給服務一點時間啟動
 
-# output
+# ========== 4. 啟動 sing-box 服務 ==========
+echo "正在啟動 sing-box 服務..."
+nohup sing-box run -c config.json > sing-box.log 2>&1 &
+sleep 2
+
+if ! pgrep -f "sing-box run -c config.json" > /dev/null; then
+    echo "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
+    echo "sing-box 啟動失敗，請檢查日誌 sing-box.log"
+    echo "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
+    cat sing-box.log
+    exit 1
+fi
+
+# ========== 5. 輸出客戶端配置資訊 ==========
 echo "--------------------------------------------------"
-echo "simple-reality 啟動成功"
+echo "simple-reality 啟動成功！"
 echo "--------------------------------------------------"
-echo "【 節點鏈接 】"
-echo "複製下面的模板，然後將其中 'example.com:721' 部分替換為公共地址和埠"
-location="${location:-default}"
-echo "模板:"
-echo "    vless://${EFFECTIVE_UUID}@example.com:721?security=reality&fp=chrome&pbk=${REALITY_PUBLIC_KEY}&sni=${REALITY_DEST}&sid=${REALITY_SHORT_ID}&type=tcp&flow=xtls-rprx-vision#${location}_simple-reality"
+echo "【 客戶端配置資訊 】"
+echo "⭐ 請複製以下資訊，填寫到您的客戶端設定中："
+echo "伺服器端口: ${LISTEN_PORT}"
+echo "UUID: ${EFFECTIVE_UUID}"
+echo "公鑰: ${SERVER_PUBLIC_KEY}"
+echo "偽裝目標 (Handshake Server): ${HANDSHAKE_SERVER}"
+echo "節點名稱: ${LOCATION}_simple-reality"
 echo "--------------------------------------------------"
+echo "【 VLESS URI - 可直接複製使用 】"
+VLESS_URI="vless://${EFFECTIVE_UUID}@<您的伺服器 IP>:${LISTEN_PORT}?security=reality&encryption=none&pbk=${SERVER_PUBLIC_KEY}&fp=chrome&sni=${SNI_DOMAIN}&sid=&type=tcp&flow=xtls-rprx-vision#${LOCATION}_simple-reality"
+echo ""
+echo "請替換URI中的 <您的伺服器 IP> 為您的實際 IP 或域名。"
+echo "您可以複製此 URI 並在客戶端中使用。"
+echo ""
+echo "$VLESS_URI"
+echo "--------------------------------------------------"
+
 echo "【 日誌 】"
-tail -f ./0.log
+tail -f sing-box.log
