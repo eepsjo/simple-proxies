@@ -5,25 +5,31 @@ echo "simple-hy2 啟動中..."
 echo "--------------------------------------------------"
 
 # Hysteria
-echo "【 hysteria 】"
+echo "【 Hysteria 】"
 EFFECTIVE_PASSWORD=""
 if [ -n "$password" ]; then
     EFFECTIVE_PASSWORD="$password"
 else
     EFFECTIVE_PASSWORD=$(openssl rand -base64 12)
 fi
+openssl req -x509 -nodes -newkey ec:<(openssl ecparam -name prime256v1) -keyout /app/key.pem -out /app/cert.pem -subj "/CN=bing.com" -days 3650
 cat > 0.yaml <<EOF
 listen: :6969
-auth:
-  type: password
-  password: ${EFFECTIVE_PASSWORD}
 tls:
   alpn: h3
   cert: /app/cert.pem
   key: /app/key.pem
+auth:
+  type: password
+  password: ${EFFECTIVE_PASSWORD}
+masquerade:
+  type: proxy
+  proxy:
+    url: https://bing.com
+    rewriteHost: true
+ignoreClientBandwidth: false
 EOF
-echo "hysteria 配置已部署，監聽端口: 6969"
-openssl req -x509 -nodes -newkey ec:<(openssl ecparam -name prime256v1) -keyout /app/key.pem -out /app/cert.pem -subj "/CN=localhost" -days 3650
+echo "Hysteria 配置已部署"
 
 # output
 location="${location:-default}"
