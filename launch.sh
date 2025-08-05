@@ -2,8 +2,8 @@
 
 # 腳本說明：此腳本用於啟動一個基於 VLESS + Reality 協議的 sing-box 伺服器。
 #
-# 重要提示：此腳本需要 sing-box v1.8.0 或更高版本才能正常運作。
-# 已將舊的 "handshake_server" 欄位更新為 "dest_override"，以修復最新的錯誤。
+# 重要提示：此腳本已更新，以與最新版本的 sing-box 兼容。
+# 已將舊的 "dest_override" 欄位更新為 "dest"，以修復最新的錯誤。
 
 echo "--------------------------------------------------"
 echo "simple-reality 啟動中..."
@@ -46,7 +46,7 @@ echo "Reality 私鑰已生成。"
 
 # ========== 3. 創建 sing-box 配置檔案 (config.json) ==========
 echo "正在部署 sing-box 配置..."
-# 注意：已將 "handshake_server" 更新為 "dest_override"。
+# 注意：已將 "dest_override" 更新為 "dest"。
 cat > config.json <<EOF
 {
   "log": { 
@@ -70,7 +70,7 @@ cat > config.json <<EOF
         "enabled": true,
         "reality": {
           "enabled": true,
-          "dest_override": "${domain}:${HANDSHAKE_PORT}",
+          "dest": "${domain}:${HANDSHAKE_PORT}",
           "private_key": "${SERVER_PRIVATE_KEY}",
           "server_names": [
             "${SNI_DOMAIN}"
