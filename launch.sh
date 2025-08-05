@@ -9,25 +9,23 @@ echo "--------------------------------------------------"
 # ========== 1. 從環境變數讀取配置或使用預設值 ==========
 LISTEN_PORT=443
 HANDSHAKE_PORT=443
-DOMAIN="${domain:-www.apple.com}"
-SNI_DOMAIN="${SNI_DOMAIN:-$DOMAIN}"
-LOCATION="${location:-default}"
-PROVIDED_UUID="${uuid}"
+domain="${domain:-www.apple.com}"
+SNI_DOMAIN="${SNI_DOMAIN:-$domain}"
+location="${location:-default}"
+uuid="${uuid}"
 
 echo "啟動配置："
 echo "監聽端口: ${LISTEN_PORT}"
-echo "偽裝目標: ${DOMAIN}"
+echo "偽裝目標: ${domain}"
 echo "SNI 域名: ${SNI_DOMAIN}"
-echo "節點位置: ${LOCATION}"
-
+echo "節點位置: ${location}"
 
 # ========== 2. 生成 UUID 和 Reality 密鑰對 ==========
-if [ -z "$PROVIDED_UUID" ]; then
-    EFFECTIVE_UUID=$(sing-box generate uuid)
-    echo "環境變數中未提供 uuid，已生成新的 UUID: ${EFFECTIVE_UUID}"
+if [ -z "$uuid" ]; then
+    uuid=$(sing-box generate uuid)
+    echo "環境變數中未提供 uuid，已生成新的 UUID: ${uuid}"
 else
-    EFFECTIVE_UUID="$PROVIDED_UUID"
-    echo "已使用環境變數中提供的 uuid: ${EFFECTIVE_UUID}"
+    echo "已使用環境變數中提供的 uuid: ${uuid}"
 fi
 
 echo "正在生成 Reality 密鑰對..."
@@ -53,7 +51,7 @@ cat > config.json <<EOF
       "listen_port": ${LISTEN_PORT},
       "users": [
         {
-          "uuid": "${EFFECTIVE_UUID}",
+          "uuid": "${uuid}",
           "flow": "xtls-rprx-vision"
         }
       ],
@@ -61,7 +59,7 @@ cat > config.json <<EOF
         "enabled": true,
         "reality": {
           "enabled": true,
-          "handshake_server": "${DOMAIN}:${HANDSHAKE_PORT}",
+          "handshake_server": "${domain}:${HANDSHAKE_PORT}",
           "private_key": "${SERVER_PRIVATE_KEY}",
           "server_names": [
             "${SNI_DOMAIN}"
@@ -99,13 +97,13 @@ echo "--------------------------------------------------"
 echo "【 客戶端配置資訊 】"
 echo "⭐ 請複製以下資訊，填寫到您的客戶端設定中："
 echo "伺服器端口: ${LISTEN_PORT}"
-echo "UUID: ${EFFECTIVE_UUID}"
+echo "UUID: ${uuid}"
 echo "公鑰: ${SERVER_PUBLIC_KEY}"
-echo "偽裝目標 (Handshake Server): ${DOMAIN}"
-echo "節點名稱: ${LOCATION}_simple-reality"
+echo "偽裝目標 (Handshake Server): ${domain}"
+echo "節點名稱: ${location}_simple-reality"
 echo "--------------------------------------------------"
 echo "【 VLESS URI - 可直接複製使用 】"
-VLESS_URI="vless://${EFFECTIVE_UUID}@<您的伺服器 IP>:${LISTEN_PORT}?security=reality&encryption=none&pbk=${SERVER_PUBLIC_KEY}&fp=chrome&sni=${SNI_DOMAIN}&sid=&type=tcp&flow=xtls-rprx-vision#${LOCATION}_simple-reality"
+VLESS_URI="vless://${uuid}@<您的伺服器 IP>:${LISTEN_PORT}?security=reality&encryption=none&pbk=${SERVER_PUBLIC_KEY}&fp=chrome&sni=${SNI_DOMAIN}&sid=&type=tcp&flow=xtls-rprx-vision#${location}_simple-reality"
 echo ""
 echo "請替換URI中的 <您的伺服器 IP> 為您的實際 IP 或域名。"
 echo "您可以複製此 URI 並在客戶端中使用。"
