@@ -1,65 +1,72 @@
 #!/bin/sh
 
-# 腳本說明：此腳本用於啟動一個基於 VLESS + Reality 協議的 sing-box 伺服器。
-#
-# 重要提示：此腳本已更新，以與最新版本的 sing-box 兼容。
-# 已將舊的 "dest_override" 欄位更新為 "dest"，以修復最新的錯誤。
+# =========================================
+# sing-box VLESS + Reality 一鍵啟動腳本
+# 功能：
+# - 讀取/生成必要參數（UUID、公私鑰、short_id）
+# - 動態生成 sing-box VLESS+Reality 配置檔
+# - 啟動 sing-box 並輸出連接信息與日誌
+# =========================================
 
 echo "--------------------------------------------------"
 echo "simple-reality 啟動中..."
 echo "--------------------------------------------------"
 
-# ========== 1. 從環境變數讀取配置或使用預設值 ==========
-# 檢查並顯示所有關鍵環境變數
-echo "正在檢查環境變數..."
-echo "domain: ${domain:-未設定，將使用預設值 www.apple.com}"
-echo "SNI_DOMAIN: ${SNI_DOMAIN:-未設定，將使用預設值 ${domain}}"
-echo "location: ${location:-未設定，將使用預設值 default}"
-echo "uuid: ${uuid:-未設定，將自動生成}"
-
+# 1. 讀取環境變數或設置預設值
 LISTEN_PORT=443
 HANDSHAKE_PORT=443
-domain="${domain:-www.apple.com}"
-SNI_DOMAIN="${SNI_DOMAIN:-$domain}"
-location="${location:-default}"
-uuid="${uuid}"
+domain="${domain:-www.apple.com}"           # 用於 Reality 偽裝握手和 SNI 的目標域名
+location="${location:-default}"             # 節點標誌
+uuid="${uuid}"                              # 用戶 UUID
+short_id="${short_id}"                      # Reality short_id，小寫
 
 echo "啟動配置："
 echo "監聽端口: ${LISTEN_PORT}"
-echo "偽裝目標: ${domain}"
-echo "SNI 域名: ${SNI_DOMAIN}"
-echo "節點位置: ${location}"
-
-# ========== 2. 生成 UUID 和 Reality 密鑰對 ==========
-if [ -z "$uuid" ]; then
-    uuid=$(sing-box generate uuid)
-    echo "環境變數中未提供 uuid，已生成新的 UUID: ${uuid}"
+echo "偽裝目標與SNI: ${domain}"
+echo "節點名稱: ${location}"
+if [ -z "$short_id" ]; then
+    echo "Reality short_id: (將自動生成)"
 else
-    echo "已使用環境變數中提供的 uuid: ${uuid}"
+    echo "Reality short_id: ${short_id}"
 fi
 
-echo "正在生成 Reality 密鑰對..."
+# 2. 自動生成 UUID 和 Reality 密鑰對（如未提供）
+if [ -z "$uuid" ]; then
+    uuid=$(sing-box generate uuid)
+    echo "未提供 uuid，自動生成: ${uuid}"
+else
+    echo "使用提供的 uuid: ${uuid}"
+fi
+
+echo "生成 Reality 密鑰對..."
 REALITY_KEYS=$(sing-box generate reality-keypair)
 SERVER_PRIVATE_KEY=$(echo "$REALITY_KEYS" | grep "Private key" | awk '{print $NF}')
 SERVER_PUBLIC_KEY=$(echo "$REALITY_KEYS" | grep "Public key" | awk '{print $NF}')
-echo "Reality 私鑰已生成。"
+echo "Reality 公鑰: $SERVER_PUBLIC_KEY"
 
-# ========== 3. 創建 sing-box 配置檔案 (config.json) ==========
-echo "正在部署 sing-box 配置..."
-# 注意：已將 "dest_override" 更新為 "dest"。
+# 3. 生成符合要求的 short_id（8位16進制小寫字符串，如未提供）
+if [ -z "$short_id" ]; then
+    short_id=$(head -c4 /dev/urandom | od -An -tx1 | tr -d ' \n' | cut -c1-8)
+    echo "自動生成 short_id: ${short_id}"
+else
+    short_id=$(echo "$short_id" | tr '[:upper:]' '[:lower:]')
+    echo "使用提供的 short_id: ${short_id}"
+fi
+
+# 4. 生成 sing-box 配置文件
+echo "生成 sing-box 配置 (config.json)..."
 cat > config.json <<EOF
 {
-  "log": { 
-    "disabled": false,
-    "level": "warn",
-    "timestamp": true
+  "log": {
+    "level": "info"
   },
   "inbounds": [
     {
       "type": "vless",
-      "tag": "proxy-in",
       "listen": "::",
       "listen_port": ${LISTEN_PORT},
+      "sniff": true,
+      "sniff_override_destination": true,
       "users": [
         {
           "uuid": "${uuid}",
@@ -68,14 +75,22 @@ cat > config.json <<EOF
       ],
       "tls": {
         "enabled": true,
+        "server_name": "${domain}",
         "reality": {
           "enabled": true,
-          "dest": "${domain}:${HANDSHAKE_PORT}",
+          "handshake": {
+            "server": "${domain}",
+            "server_port": ${HANDSHAKE_PORT}
+          },
           "private_key": "${SERVER_PRIVATE_KEY}",
-          "server_names": [
-            "${SNI_DOMAIN}"
+          "short_id": [
+            "${short_id}"
           ]
-        }
+        },
+        "alpn": [
+          "h2",
+          "http/1.1"
+        ]
       }
     }
   ],
@@ -88,8 +103,8 @@ cat > config.json <<EOF
 }
 EOF
 
-# ========== 4. 啟動 sing-box 服務 ==========
-echo "正在啟動 sing-box 服務..."
+# 5. 啟動 sing-box 並健康檢查
+echo "啟動 sing-box 服務..."
 nohup sing-box run -c config.json > sing-box.log 2>&1 &
 sleep 2
 
@@ -101,26 +116,24 @@ if ! pgrep -f "sing-box run -c config.json" > /dev/null; then
     exit 1
 fi
 
-# ========== 5. 輸出客戶端配置資訊 ==========
+# 6. 輸出客戶端連接信息
 echo "--------------------------------------------------"
 echo "simple-reality 啟動成功！"
 echo "--------------------------------------------------"
 echo "【 客戶端配置資訊 】"
-echo "⭐ 請複製以下資訊，填寫到您的客戶端設定中："
 echo "伺服器端口: ${LISTEN_PORT}"
 echo "UUID: ${uuid}"
-echo "公鑰: ${SERVER_PUBLIC_KEY}"
-echo "偽裝目標 (Handshake Server): ${domain}"
+echo "Reality 公鑰: ${SERVER_PUBLIC_KEY}"
+echo "偽裝目標與SNI (Handshake Server): ${domain}"
 echo "節點名稱: ${location}_simple-reality"
+echo "Reality short_id: ${short_id}"
 echo "--------------------------------------------------"
 echo "【 VLESS URI - 可直接複製使用 】"
-VLESS_URI="vless://${uuid}@<您的伺服器 IP>:${LISTEN_PORT}?security=reality&encryption=none&pbk=${SERVER_PUBLIC_KEY}&fp=chrome&sni=${SNI_DOMAIN}&sid=&type=tcp&flow=xtls-rprx-vision#${location}_simple-reality"
+VLESS_URI="vless://${uuid}@<你的服務器IP>:${LISTEN_PORT}?security=reality&encryption=none&pbk=${SERVER_PUBLIC_KEY}&fp=chrome&sni=${domain}&sid=${short_id}&type=tcp&flow=xtls-rprx-vision#${location}_simple-reality"
 echo ""
-echo "請替換URI中的 <您的伺服器 IP> 為您的實際 IP 或域名。"
-echo "您可以複製此 URI 並在客戶端中使用。"
-echo ""
-echo "$VLESS_URI"
+echo "請替換 <你的服務器IP> 為你的實際 IP 或域名。"
+echo "${VLESS_URI}"
 echo "--------------------------------------------------"
 
-echo "【 日誌 】"
+echo "【 sing-box 日誌 】"
 tail -f sing-box.log
