@@ -72,7 +72,7 @@ if [ "$TUNNEL_CONNECTED" = "true" ]; then
     echo "simple-vless 啟動成功"
     echo "--------------------------------------------------"
     echo "【 節點鏈接 】"
-    echo "⭐ 複製下方連接粘貼到客戶端使用"
+    echo "⭐ 複製下方鏈接粘貼到客戶端使用"
     for node_info in \
         "www.visa.com.tw:443:vTW" \
         "www.visa.com.hk:2053:vHK" \
