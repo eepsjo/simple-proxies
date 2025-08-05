@@ -6,6 +6,7 @@ echo "--------------------------------------------------"
 
 # sing-box
 echo "【 sing-box 】"
+cfport="${cfport:-0}"
 EFFECTIVE_UUID=""
 if [ -n "$uuid" ]; then
     EFFECTIVE_UUID="$uuid"
@@ -16,7 +17,7 @@ cat > 0.json <<EOF
 {
   "log": { "disabled": false, "level": "warn", "timestamp": true },
   "inbounds": [
-    { "type": "vless", "tag": "proxy", "listen": "::", "listen_port": 2777,
+    { "type": "vless", "tag": "proxy", "listen": "::", "listen_port": ${cfport},
       "users": [ { "uuid": "${EFFECTIVE_UUID}", "flow": "" } ],
       "transport": { "type": "ws", "path": "/${EFFECTIVE_UUID}", "max_early_data": 2048, "early_data_header_name": "Sec-WebSocket-Protocol" }
     }
@@ -50,7 +51,7 @@ if [ -n "$token" ] && [ -n "$domain" ]; then
 else
     TUNNEL_MODE="臨時隧道"
     echo "檢測到 token 或/和 domain 未配置，使用臨時隧道模式"
-    nohup cloudflared tunnel --url http://localhost:2777 --edge-ip-version auto --no-autoupdate --protocol http2 > ./0.log 2>&1 &
+    nohup cloudflared tunnel --url http://localhost:${cfport} --edge-ip-version auto --no-autoupdate --protocol http2 > ./0.log 2>&1 &
     echo "等待臨時隧道分配..."
     for attempt in $(seq 1 15); do
         sleep 2
