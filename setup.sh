@@ -6,7 +6,7 @@ http://dl-cdn.alpinelinux.org/alpine/edge/main
 http://dl-cdn.alpinelinux.org/alpine/edge/community
 EOF
 apk update
-apk add sing-box@testing
+apk add sing-box@testing tor
 rm -rf /var/cache/apk/*
 
 wget https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64 -O /usr/bin/cloudflared
