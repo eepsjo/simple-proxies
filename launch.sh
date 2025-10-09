@@ -4,7 +4,7 @@ echo "--------------------------------------------------"
 echo "simple-vless 啟動中..."
 echo "--------------------------------------------------"
 
-# sing-box with Tor
+# sing-box
 echo "【 sing-box 】"
 cfport="${cfport:-0}"
 EFFECTIVE_UUID=""
@@ -13,12 +13,6 @@ if [ -n "$uuid" ]; then
 else
     EFFECTIVE_UUID=$(sing-box generate uuid)
 fi
-# 在後台啟動 Tor SOCKS5 代理，監聽 127.0.0.1:9050
-# --RunAsDaemon 0 避免 Tor 依賴系統 init 系統
-nohup tor --RunAsDaemon 0 --SocksPort 127.0.0.1:9050 > /dev/null 2>&1 &
-sleep 5 # 留出時間讓 Tor 服務完成啟動
-echo "Tor SOCKS5 代理已在 127.0.0.1:9050 啟動"
-# sing-box 配置文件
 cat > 0.json <<EOF
 {
   "log": { "disabled": false, "level": "warn", "timestamp": true },
@@ -28,16 +22,7 @@ cat > 0.json <<EOF
       "transport": { "type": "ws", "path": "/${EFFECTIVE_UUID}", "max_early_data": 2048, "early_data_header_name": "Sec-WebSocket-Protocol" }
     }
   ],
-  "outbounds": [ 
-    { "type": "direct", "tag": "direct" },
-    { "type": "socks", "tag": "tor_out", "server": "127.0.0.1", "server_port": 9050, "proxy_protocol": "socks5" }
-  ],
-  "route": {
-    "rules": [
-      { "domain_suffix": ["onion"], "outbound": "tor_out" }
-    ],
-    "final": "direct"
-  }
+  "outbounds": [ { "type": "direct", "tag": "direct" } ]
 }
 EOF
 echo "sing-box 配置已部署"
