@@ -23,9 +23,8 @@ jobs:
       - name: Generate custom tag
         id: custom_tag
         run: |
-          SHORT_SHA=$(echo $GITHUB_SHA | cut -c1-7)
-          DATE_TAG=$(date +'%y%m%d')
-          TAG=${DATE_TAG}-${SHORT_SHA}
+          DATE_TAG=$(date +'%y%m%d-%H%M%S')
+          TAG=${DATE_TAG}
           echo "tag=$TAG" >> $GITHUB_OUTPUT
       - name: Build image
         run: docker build . -t ${{ secrets.DOCKER_USERNAME }}/simple-hy2:${{ steps.custom_tag.outputs.tag }} -t ${{ secrets.DOCKER_USERNAME }}/simple-hy2:latest
