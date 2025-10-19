@@ -36,9 +36,10 @@ cat > 0.json <<EOF
 EOF
 echo "sing-box 配置已部署"
 # 啟動 sing-box 并後台運行
-# 日誌重定向到 /dev/null
-nohup sing-box run -c 0.json > /dev/null 2>&1 &
-sleep 3 # 确保 sing-box 成功啟動
+# 日誌重定向到 ./sb.log
+nohup sing-box run -c 0.json > ./sb.log 2>&1 &
+# 确保 sing-box 成功啟動
+sleep 3
 
 # cf
 echo "--------------------------------------------------"
@@ -49,11 +50,11 @@ if [ -n "$token" ] && [ -n "$domain" ]; then
     TUNNEL_MODE="固定隧道"
     echo "檢測到 token 和 domain 已配置，使用固定隧道模式"
     # 啟動固定隧道
-    nohup cloudflared tunnel --no-autoupdate run --token "${token}" > ./0.log 2>&1 &
+    nohup cloudflared tunnel --no-autoupdate run --token "${token}" > ./cf.log 2>&1 &
     echo "等待隧道連接..."
     for attempt in $(seq 1 15); do
         sleep 2
-        if grep -q -E "Registered tunnel connection|Connected to .*, an Argo Tunnel an edge" ./0.log; then
+        if grep -q -E "Registered tunnel connection|Connected to .*, an Argo Tunnel an edge" ./cf.log; then
             TUNNEL_CONNECTED=true # 成功連接固定隧道
             break
         fi
@@ -63,11 +64,11 @@ else
     TUNNEL_MODE="臨時隧道"
     echo "檢測到 token 或/和 domain 未配置，使用臨時隧道模式"
     # 啓動臨時隧道
-    nohup cloudflared tunnel --url http://localhost:${port} --edge-ip-version auto --no-autoupdate --protocol http2 > ./0.log 2>&1 &
+    nohup cloudflared tunnel --url http://localhost:${port} --edge-ip-version auto --no-autoupdate --protocol http2 > ./cf.log 2>&1 &
     echo "等待臨時隧道..."
     for attempt in $(seq 1 15); do
         sleep 2
-        TEMP_TUNNEL_URL=$(grep -o 'https://[a-zA-Z0-9-]*\.trycloudflare.com' ./0.log | head -n 1)
+        TEMP_TUNNEL_URL=$(grep -o 'https://[a-zA-Z0-9-]*\.trycloudflare.com' ./cf.log | head -n 1)
         if [ -n "$TEMP_TUNNEL_URL" ]; then
             domain=$(echo "$TEMP_TUNNEL_URL" | awk -F'//' '{print $2}')
             TUNNEL_CONNECTED=true # 成功連接臨時隧道
@@ -100,7 +101,9 @@ if [ "$TUNNEL_CONNECTED" = "true" ]; then
 
 # log
     echo "【 日誌 】"
-    tail -f ./0.log
+    tail -f ./sb.log | stdbuf -oL sed 's/^/[sb] /' &
+    tail -f ./cf.log | stdbuf -oL sed 's/^/[cf] /' &
+    wait
 else
     echo "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
     echo "$TUNNEL_MODE 連接失敗"
@@ -109,6 +112,6 @@ else
         echo "確保 token 和 domain 正確配置"
     fi
     echo "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
-    cat ./0.log
+    cat ./cf.log
     exit 1
 fi
