@@ -101,8 +101,8 @@ if [ "$TUNNEL_CONNECTED" = "true" ]; then
 
 # log
     echo "【 日誌 】"
-    tail -f ./sb.log | stdbuf -oL sed 's/^/[sb] /' &
-    tail -f ./cf.log | stdbuf -oL sed 's/^/[cf] /' &
+    tail -f ./sb.log | sed 's/^/[sb] /' &
+    tail -f ./cf.log | sed 's/^/[cf] /' &
     wait
 else
     echo "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
