@@ -4,8 +4,10 @@
 port="${port:-20000}"
 pwd="${pwd}"
 tag="${tag:-default}"
+log_level="${log_level:-warn}"
 
 # Hysteria2
+export HYSTERIA_LOG_LEVEL=$log_level
 echo "--------------------------------------------------"
 echo "simple-hy2 啟動中..."
 echo "--------------------------------------------------"
