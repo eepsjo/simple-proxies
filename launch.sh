@@ -24,7 +24,7 @@ tls:
   key: /app/key.pem
 auth:
   type: password
-  password: ${pwd}
+  password: "${pwd}"
 masquerade:
   type: proxy
   proxy:
