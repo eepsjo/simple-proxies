@@ -11,7 +11,7 @@ echo "simple-hy2 啟動中..."
 echo "--------------------------------------------------"
 echo "【 Hysteria2 】"
 if [ -z "$pwd" ]; then
-    pwd=$(openssl rand -base64 12)
+    pwd=$(openssl rand -base64 32)
 fi
 openssl req -x509 -nodes -newkey ec:<(openssl ecparam -name prime256v1) -keyout /app/key.pem -out /app/cert.pem -subj "/CN=bing.com" -days 3650
 cat > 0.yaml <<EOF
