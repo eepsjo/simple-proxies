@@ -11,6 +11,8 @@ token="${token}"
 domain="${domain}"
 # 节点名称前的标签，方便区分节点。默认为 default
 tag="${tag:-default}"
+# 日志等级，默认为 warn
+log_level="${log_level:-warn}"
 
 # sing-box
 echo "--------------------------------------------------"
@@ -24,7 +26,7 @@ fi
 # 配置文件
 cat > 0.json <<EOF
 {
-  "log": { "disabled": false, "level": "warn", "timestamp": true },
+  "log": { "disabled": false, "level": "${log_level}", "timestamp": true },
   "inbounds": [
     { "type": "vless", "tag": "proxy", "listen": "::", "listen_port": ${port},
       "users": [ { "uuid": "${uuid}", "flow": "" } ],
@@ -50,7 +52,7 @@ if [ -n "$token" ] && [ -n "$domain" ]; then
     TUNNEL_MODE="固定隧道"
     echo "檢測到 token 和 domain 已配置，使用固定隧道模式"
     # 啟動固定隧道
-    nohup cloudflared tunnel --no-autoupdate run --token "${token}" > ./cf.log 2>&1 &
+    nohup cloudflared tunnel --no-autoupdate --loglevel "${log_level}" run --token "${token}" > ./cf.log 2>&1 &
     echo "等待隧道連接..."
     for attempt in $(seq 1 15); do
         sleep 2
@@ -64,7 +66,7 @@ else
     TUNNEL_MODE="臨時隧道"
     echo "檢測到 token 或/和 domain 未配置，使用臨時隧道模式"
     # 啓動臨時隧道
-    nohup cloudflared tunnel --url http://localhost:${port} --edge-ip-version auto --no-autoupdate --protocol http2 > ./cf.log 2>&1 &
+    nohup cloudflared tunnel --url http://localhost:${port} --edge-ip-version auto --no-autoupdate --protocol http2 --loglevel "${log_level}" > ./cf.log 2>&1 &
     echo "等待臨時隧道..."
     for attempt in $(seq 1 15); do
         sleep 2
