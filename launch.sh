@@ -9,7 +9,7 @@ log_level="${log_level:-warn}"
 # config
 export HYSTERIA_LOG_LEVEL=$log_level
 echo "--------------------------------------------------"
-echo "simple-hy2 啟動中..."
+echo "simple-hy2(build_251026a) 啟動中..."
 echo "--------------------------------------------------"
 echo "【 Hysteria2 】"
 if [ -z "$pwd" ]; then
