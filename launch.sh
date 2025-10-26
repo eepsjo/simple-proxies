@@ -27,31 +27,13 @@ fi
 cat > 0.json <<EOF
 {
   "log": { "disabled": false, "level": "${log_level}", "timestamp": true },
-  "dns": {
-    "strategy": "prefer_ipv4", 
-    "servers": [
-      { "address": "1.1.1.1", "port": 53 },
-      { "address": "8.8.8.8", "port": 53 }
-    ]
-  },
-  "route": {
-    "rules": [
-      { "protocol": "dns", "outbound": "direct" }
-    ],
-    "final": "direct"
-  },
   "inbounds": [
     { "type": "vless", "tag": "proxy", "listen": "::", "listen_port": ${port},
       "users": [ { "uuid": "${uuid}", "flow": "" } ],
       "transport": { "type": "ws", "path": "/${uuid}", "max_early_data": 2048, "early_data_header_name": "Sec-WebSocket-Protocol" }
     }
   ],
-  "outbounds": [ 
-    { 
-      "type": "direct", 
-      "tag": "direct"
-    } 
-  ]
+  "outbounds": [ { "type": "direct", "tag": "direct" } ]
 }
 EOF
 echo "sing-box 配置已部署"
