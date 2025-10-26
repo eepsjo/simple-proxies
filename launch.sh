@@ -16,7 +16,7 @@ log_level="${log_level:-warn}"
 
 # sing-box
 echo "--------------------------------------------------"
-echo "simple-vless 啟動中..."
+echo "simple-vless(build_251026j) 啟動中..."
 echo "--------------------------------------------------"
 echo "【 sing-box 】"
 # 生成 UUID（如果未提供）
