@@ -27,6 +27,24 @@ fi
 cat > 0.json <<EOF
 {
   "log": { "disabled": false, "level": "${log_level}", "timestamp": true },
+  
+  // 新增 DNS 區塊：解決 IPv6 問題和棄用警告
+  "dns": {
+    "enabled": true,
+    "strategy": "prefer_ipv4", 
+    "servers": [
+      { "tag": "dot", "address": "1.1.1.1", "port": 53 }
+    ]
+  },
+  
+  // 新增 Route 區塊：確保 DNS 流量明確走 direct 出口 (v1.14+ 兼容)
+  "route": {
+    "rules": [
+      { "protocol": "dns", "outbound": "direct" }
+    ],
+    "final": "direct"
+  },
+
   "inbounds": [
     { "type": "vless", "tag": "proxy", "listen": "::", "listen_port": ${port},
       "users": [ { "uuid": "${uuid}", "flow": "" } ],
@@ -35,10 +53,9 @@ cat > 0.json <<EOF
   ],
   "outbounds": [ 
     { 
-	  "type": "direct", 
-	  "tag": "direct",
-	  "domain_strategy": "prefer_ipv4"
-	} 
+      "type": "direct", 
+      "tag": "direct"
+    } 
   ]
 }
 EOF
