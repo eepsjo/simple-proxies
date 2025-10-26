@@ -30,8 +30,8 @@ cat > 0.json <<EOF
   "dns": {
     "strategy": "prefer_ipv4", 
     "servers": [
-      "1.1.1.1",
-      "8.8.8.8"
+      { "address": "1.1.1.1", "port": 53 },
+      { "address": "8.8.8.8", "port": 53 }
     ]
   },
   "route": {
