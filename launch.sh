@@ -38,20 +38,12 @@ cat > 0.json <<EOF
   "inbounds": [
     { "type": "vless", "tag": "proxy", "listen": "::", "listen_port": ${port},
       "users": [ { "uuid": "${uuid}", "flow": "" } ],
-      "transport": { 
-        "type": "ws", 
-        "path": "/${uuid}", 
-        "max_early_data": 2048, 
-        "early_data_header_name": "Sec-WebSocket-Protocol" 
-      }
+      "transport": { "type": "ws", "path": "/${uuid}", "max_early_data": 2048, "early_data_header_name": "Sec-WebSocket-Protocol" }
     }
   ],
   
   "outbounds": [
-    { 
-      "type": "direct", 
-      "tag": "direct" 
-    } 
+    { "type": "direct", "tag": "direct" } 
   ],
   
   "route": {
