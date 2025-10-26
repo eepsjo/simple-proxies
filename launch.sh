@@ -33,7 +33,13 @@ cat > 0.json <<EOF
       "transport": { "type": "ws", "path": "/${uuid}", "max_early_data": 2048, "early_data_header_name": "Sec-WebSocket-Protocol" }
     }
   ],
-  "outbounds": [ { "type": "direct", "tag": "direct" } ]
+  "outbounds": [ 
+    { 
+	  "type": "direct", 
+	  "tag": "direct",
+	  "domain_strategy": "prefer_ipv4"
+	} 
+  ]
 }
 EOF
 echo "sing-box 配置已部署"
