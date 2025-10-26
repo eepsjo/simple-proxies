@@ -31,7 +31,7 @@ cat > 0.json <<EOF
   "dns": {
     "strategy": "ipv4_only",
     "servers": [ 
-      { "tag": "system" } 
+      { "tag": "local" } 
     ]
   },
   
