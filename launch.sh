@@ -29,10 +29,10 @@ cat > 0.json <<EOF
   "log": { "disabled": false, "level": "${log_level}", "timestamp": true },
   
   "dns": {
-    "strategy": "ipv4_only",
     "servers": [ 
-      { "tag": "local" } 
-    ]
+      { "type": "local" } 
+    ],
+    "strategy": "prefer_ipv4"
   },
   
   "inbounds": [
