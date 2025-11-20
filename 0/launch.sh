@@ -1,8 +1,8 @@
 #!/bin/sh
 
 # env
-# sing-box 监听的本地端口。默认值 20002
-port="${port:-20002}" 
+# sing-box 监听的本地端口。默认值 20001
+port="${port:-20001}" 
 # 自定义 UUID，不填则隨機生成
 uuid="${uuid}"
 # (固定隧道模式) Cloudflare Tunnel 的 Access Token
@@ -16,7 +16,7 @@ log_level="${log_level:-warn}"
 
 # sing-box
 echo "--------------------------------------------------"
-echo "simple-vless(build_251026j) 啟動中..."
+echo "simple-vless(build_251120f) 啟動中..."
 echo "--------------------------------------------------"
 echo "【 sing-box 】"
 # 生成 UUID（如果未提供）
