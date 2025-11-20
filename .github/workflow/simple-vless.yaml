@@ -3,6 +3,11 @@ on:
   push:
     branches:
       - simple-vless
+    paths:
+      - 'Dockerfile'
+      - 'launch.sh'
+      - 'setup.sh'
+      # - '.github/workflows/simple-vless.yml' # 监听 Workflow 文件自身，方便调试
   workflow_dispatch:
 jobs:
   build-and-push:
@@ -11,10 +16,6 @@ jobs:
     steps:
       - name: Checkout simple-vless code
         uses: actions/checkout@v4
-        with:
-          repository: ${{ github.repository }}
-          ref: simple-vless
-          fetch-depth: 0
       - name: Login to Docker Hub
         uses: docker/login-action@v3
         with:
@@ -27,6 +28,7 @@ jobs:
           TAG=${DATE_TAG}
           echo "tag=$TAG" >> $GITHUB_OUTPUT
       - name: Build image
-        run: docker build . -t ${{ secrets.DOCKER_USERNAME }}/simple-vless:${{ steps.custom_tag.outputs.tag }} -t ${{ secrets.DOCKER_USERNAME }}/simple-vless:latest
+        run: |
+          docker build . -t ${{ secrets.DOCKER_USERNAME }}/simple-vless:${{ steps.custom_tag.outputs.tag }} -t ${{ secrets.DOCKER_USERNAME }}/simple-vless:latest 
       - name: Push image
         run: docker push ${{ secrets.DOCKER_USERNAME }}/simple-vless --all-tags
