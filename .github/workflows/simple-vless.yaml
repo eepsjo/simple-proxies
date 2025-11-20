@@ -25,7 +25,7 @@ jobs:
       - name: Generate custom tag
         id: custom_tag
         run: |
-          DATE_TAG=$(date -u +'%y%m%d%H%M%S')
+          DATE_TAG=$(date -u +'%y%m%d-%H%M%S')
           TAG=${DATE_TAG}
           echo "tag=$TAG" >> $GITHUB_OUTPUT
 
