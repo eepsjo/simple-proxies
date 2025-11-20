@@ -1,8 +1,8 @@
 #!/bin/sh
 
 # env
-# sing-box 监听的本地端口。默认值 20000
-port="${port:-20000}" 
+# sing-box 监听的本地端口。默认值 20001
+port="${port:-20001}" 
 # 自定义 UUID，不填则隨機生成
 uuid="${uuid}"
 # (固定隧道模式) Cloudflare Tunnel 的 Access Token

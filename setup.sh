@@ -15,7 +15,7 @@ apk add sing-box@testing
 rm -rf /var/cache/apk/*
 
 # 安装 cloudflared
-# Alpine 源没有 cloudflared。从 Github 下载到 /usr/bin 目录下
+# 从 Github 下载到 /usr/bin 目录下
 wget https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64 -O /usr/bin/cloudflared
 # 赋予执行权限
 chmod +x /usr/bin/cloudflared
