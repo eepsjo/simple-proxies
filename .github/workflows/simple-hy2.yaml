@@ -1,0 +1,39 @@
+name: simple-hy2
+
+on:
+  push:
+    branches:
+      - 'simple-hy2'
+    paths:
+      - '0/**'
+
+jobs:
+  build-and-push:
+    name: Build and Push simple-hy2
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout simple-hy2 code
+        uses: actions/checkout@v4
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Generate custom tag
+        id: custom_tag
+        run: |
+          DATE_TAG=$(date -u +'%y%m%d-%H%M%S')
+          TAG=${DATE_TAG}
+          echo "tag=$TAG" >> $GITHUB_OUTPUT
+
+      - name: Build and Tag image
+        run: |
+          docker build -f 0/Dockerfile 0 \
+            -t ${{ secrets.DOCKER_USERNAME }}/simple-hy2:${{ steps.custom_tag.outputs.tag }} \
+            -t ${{ secrets.DOCKER_USERNAME }}/simple-hy2:latest
+
+      - name: Push image
+        run: docker push ${{ secrets.DOCKER_USERNAME }}/simple-hy2 --all-tags
